@@ -74,6 +74,11 @@ img{max-width:100%}
 .q:nth-child(odd){transform:rotate(.5deg)}
 .q:nth-child(even){transform:rotate(-.5deg)}
 .q.done{background:#F4FFF9}
+.q h3::after{content:' *';color:var(--coral)}
+.q.need{background:#FFF0EE;border-color:var(--coral)}
+.q.need.done{background:#F4FFF9;border-color:var(--ink)}
+.q.shake{animation:shk .4s}
+@keyframes shk{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 .q h3{font-size:24px;line-height:1.3;margin-bottom:12px;font-family:var(--font-body);font-weight:600}
 .faces{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .face{aspect-ratio:1;border-radius:50%;border:var(--bw) solid var(--ink);background:var(--paper);font-size:clamp(24px,8vw,34px);line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;transition:transform .2s cubic-bezier(.3,1.8,.5,1),background .2s,box-shadow .2s;box-shadow:2px 2px 0 var(--ink)}
@@ -180,7 +185,7 @@ var CH=[
   {k:'canteen',t:'الكانتين والأصناف اللي اتختارت',y:'rate'},
   {k:'outing',t:'مكان الأوتنج',y:'rate'},
   {k:'closing_pkg',t:'باكدج الحفلة الختامية',y:'rate'},
-  {k:'team',t:'التعامل من فريق التنظيم.. حسيت إنك مسموع ومحترم؟',y:'rate'}
+  {k:'team',t:'التعامل مع تيم الـ indoor.. حسيت إنك مسموع ومحترم؟',y:'rate'}
  ]},
  {t:'الأكل',s:'السفرة كانت عاملة إيه؟',em:'🍳',bg:'#FFF4DC',qs:[
   {k:'breakfast1',t:'وجبة الفطار.. اليوم الأول',y:'rate'},
@@ -209,8 +214,6 @@ var CH=[
  ]},
  {t:'كلمة أخيرة',s:'اللي في قلبك',em:'💌',bg:'#FFF4DC',qs:[
   {k:'overall',t:'تقييمك العام للكامب',y:'rate'},
-  {k:'nps',t:'هتنصح صاحبك يشارك في الكامب الجاي؟',y:'nps'},
-  {k:'come_next',t:'هتيجي الكامب الجاي؟',y:'choice',o:'nextcamp'},
   {k:'best_moment',t:'أحلى لحظة في الكامب كانت إيه؟',y:'long'},
   {k:'remove',t:'حاجة كنت تحب نشيلها أو منعملهاش تاني؟',y:'long'},
   {k:'to_manager',t:'كلمة أو شكوى أو رأي حابب تقوله لمدير الكامب',y:'long'},
@@ -266,7 +269,7 @@ function intro(){
    +'<span class="eyebrow">استبيان ما بعد الكامب</span>'
    +'<div class="logo-panel"><img src="'+LOGO_WORD+'" alt="ملتقى" width="588" height="369"></div>'
    +'<h1 class="big-title"><span>رأيك</span> <span class="hi">يفرق</span></h1>'
-   +'<p class="lede">خمس دقايق بس.. وكلامك هو اللي هيخلي الكامب الجاي أحلى.</p>';
+   +'<p class="lede">خمس دقايق بس.. وكلامك هو اللي هيخلي الكامب الجاي أحلى.<br><small>كل الأسئلة مطلوبة، والتعليقات اختيارية.</small></p>';
   if(done){
     var d=el('div','err-box','انت بعت رأيك قبل كده، شكراً ليك! 💛');
     s.appendChild(d);
@@ -366,13 +369,22 @@ function comment(box,q,ph){
 /* nav */
 $('#back').onclick=function(){go(st.step-1)};
 $('#next').onclick=function(){
+  var c=CH[st.step],bad=null;
+  c.qs.forEach(function(q,i){if(!isDone(q)&&bad==null)bad=i});
+  if(bad!=null){
+    var bs=document.querySelectorAll('.q');
+    [].forEach.call(bs,function(b,i){if(!isDone(c.qs[i])){b.classList.add('need');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}});
+    bs[bad].scrollIntoView({behavior:'smooth',block:'center'});
+    say('كمّل الأسئلة الأول 🙂','meh');return;
+  }
   if(st.step===CH.length-1){go(CH.length);return}
   go(st.step+1);say('كمّل.. قربنا!','');
 };
 
 /* send */
 var warned=false;
-function missing(){var n=0;CH.forEach(function(c){c.qs.forEach(function(q){if((q.y==='rate'||q.y==='choice'||q.y==='nps')&&!isDone(q))n++})});return n}
+function missing(){var n=0;CH.forEach(function(c){c.qs.forEach(function(q){if(!isDone(q))n++})});return n}
+function firstMissing(){for(var i=0;i<CH.length;i++)for(var j=0;j<CH[i].qs.length;j++)if(!isDone(CH[i].qs[j]))return i;return -1}
 function payload(){
   var labels=['الاسم'],values=[st.name];
   CH.forEach(function(c){c.qs.forEach(function(q){
